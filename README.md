@@ -436,7 +436,7 @@ To execute the CPU in automatic mode using the program with JMP and ADD instruct
 
 #### 7. Verify Result
 - After execution, check RAM address **1111 (decimal 15)**.  
-- Expected result: Register A and RAM[15] contain the sum of DEC 35 (0x23) and DEC 25 (0x19), i.e., **0x45 (69 decimal)**.  
+- Expected result: Register A and RAM[15] contain the sum of DEC 44 (0x2C) and DEC 25 (0x19), i.e., **0x45 (69 decimal)**.  
 
 ---
 

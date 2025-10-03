@@ -262,6 +262,215 @@ This stepwise handshake ensures **safe memory loading** without bus contention, 
 |:--:|
 | *Figure 15: Architecture of the Manual/Loader control system.* |
 
+## Instruction Set Architecture
+
+### Instruction Encoding Scheme
+The instruction encoding system utilizes **upper nibble = IR[7:4]** for opcode specification and **lower nibble** for 4-bit operand/address when required.
+
+---
+
+#### Table 1: Instruction Set & Program
+
+| Address   | Instruction | Hex | Mnemonic & Explanation        |
+|-----------|-------------|-----|--------------------------------|
+| 00001101  | 00011101    | 1D  | LDA 13 (Load A from M[13])     |
+| 00001110  | 00101110    | 2E  | LDB 14 (Load B from M[14])     |
+| 00010001  | 01100101    | 65  | JMP 5 (PC ← 5)                 |
+| 00001001  | 00110000    | 30  | ADD (A ← A + B)                |
+| 00001110  | 01011111    | 5F  | STA 15 (M[15] ← A)             |
+| 00001001  | 11110000    | F0  | HLT (Stop execution)           |
+
+---
+
+#### Table 2: Data Values in RAM
+
+| Address (Binary) | Data (Binary) | Decimal | Hex |
+|------------------|---------------|---------|-----|
+| 0000101          | 00100011      | 35      | 23  |
+| 0000110          | 00011001      | 25      | 19  |
+### Assembler
+
+The assembler translates **SAP-1 assembly language programs** into **machine code (hexadecimal)** suitable for execution in Logisim.  
+It supports instructions such as **LDA, LDB, ADD, SUB, STA, JMP, and HLT**, along with directives like **ORG** and **DEC**.  
+The tool automatically generates **Logisim-compatible v2.0 raw hex output**, avoiding manual conversion errors.  
+
+This enables efficient program development, testing, and debugging of the SAP-1 system.
+
+---
+
+#### 🔗 [Open the SAP-1 Assembler Tool](https://htmlpreview.github.io/?https://github.com/srananna/SAP1_Architecture_in_Logisim/blob/main/SAP_ASSEMBLER_2008044.html)
+
+
+---
+
+#### SAP-1 Assembler Interface
+
+![SAP-1 Assembler](images/fig15.png)
+
+
+*Figure 16: Web-based SAP-1 assembler interface converting assembly instructions into Logisim-compatible hexadecimal code.*
+
+---
+
+#### Table 3: Examples of Assembly Programs and Corresponding Hex Codes
+
+| Example         | Assembly Code                                                                                       | Hex Code                                      |
+|-----------------|----------------------------------------------------------------------------------------------------|-----------------------------------------------|
+| **ADD Program** | LDA 13, LDB 14, ADD, STA 15, HLT <br> (ORG 13, DEC 44, ORG 14, DEC 25)                              | 1D 2E 30 5F F0 00 00 00 00 00 00 2C 19 00 00  |
+| **JMP + ADD Program** | LDA 13, LDB 14, JMP 5, ADD, STA 15, HLT <br> (ORG 13, DEC 44, ORG 14, DEC 25)                 | 1D 2E 65 30 5F F0 00 00 00 00 00 00 2C 19 00  |
+
+---
+## Operation
+
+The CPU functions through a repetitive sequence of operations controlled by the system clock, commonly known as the **fetch–decode–execute** cycle.  
+This process can be divided into three main stages:
+
+---
+
+### Fetch–Decode–Execute Cycle
+
+**Fetch**
+- **T1**: The Program Counter (PC) outputs the current instruction address onto the bus, which is then stored in the Memory Address Register (MAR).  
+- **T2**: The memory unit provides the instruction stored at the MAR address onto the data bus, and the Instruction Register (IR) captures this instruction.  
+- **T3**: The PC is incremented so it is ready to point to the next instruction in sequence.  
+
+**Decode**  
+- The opcode portion of the IR is forwarded to the instruction decoder, which activates the appropriate control line (e.g., LDA, ADD).  
+- This decoded output, combined with the active timing state (T-state), defines the exact set of control signals required for execution.  
+
+**Execute**  
+- The control unit asserts the relevant signals to carry out the micro-operations of the decoded instruction.  
+- The number of clock states required depends on the instruction type.  
+  - Example: LDA typically requires two states, ADD takes two, while HLT completes in a single state.  
+- This cycle continues automatically, instruction by instruction, until a HLT command is reached, at which point the CPU halts and the state counter is stopped.  
+
+---
+
+### Running the CPU in Manual Mode
+
+To run the SAP-1 CPU in **Manual/Loader mode**, the following steps are followed:
+
+**Initial Setup**
+- Turn the debug pin OFF (LOW) to enable automated control.  
+- Pulse the pc_reset pin once to reset the Program Counter (PC) to 0000.  
+- Ensure the main clock (clk1) is OFF.  
+- Set the en_run pin to HIGH to enable execution.  
+- Configure the RAM (Debug Mode):  
+  - Turn ON the debug pin (HIGH). This enables manual RAM programming.  
+
+**For each instruction/data**
+- Set address: Use debug_data to define the 8-bit memory address.  
+- Load address into MAR: Pulse `mar_in_en_manual`.  
+- Set instruction/data: Use debug_data to provide the 8-bit value.  
+- Write to RAM: Pulse `ram_wr_manual`.  
+
+**After loading instructions/data**
+- Turn OFF the debug pin (LOW).  
+- Pulse pc_reset to reset PC to 0000 for program execution.  
+
+**Run the Program**
+- **Manual stepping**: Press the clk button repeatedly to step through the Fetch–Decode–Execute cycle, observing PC, MAR, IR, A/B registers, and RAM.  
+- **Continuous run**: Enable the continuous clock source for automated execution.  
+
+**Observe HLT**
+- When the HLT instruction is reached, the CPU halts, stopping the clock or state counter.  
+
+**Verify Results**
+- Check RAM address 00001111 (decimal 15).  
+- The expected content is `01000101 (decimal 69)`, obtained from adding decimal 44 and decimal 25.  
+
+---
+
+### SAP-1 CPU Circuit Implementation
+
+![SAP-1 CPU Circuit](images/manual.png)
+
+*Figure 17: SAP-1 CPU circuit implementation in Logisim Evolution, highlighting debug signals, control pins, and RAM verification for program execution.*
+### Running the CPU in Automatic Mode (JMP + ADD Program)
+
+To execute the CPU in automatic mode using the program with JMP and ADD instructions, follow the procedure below:
+
+---
+
+#### 1. Initial Setup
+- Ensure the debug pin is set to LOW.  
+- Ensure the main clock (clk1) is OFF.  
+- Pulse the pc_reset pin once to reset the Program Counter to 0000.  
+#### 2. Program the ROM
+- Open the ROM component in Logisim Evolution.  
+- Right-click on it and select **Edit Contents...**  
+- A memory editor window will appear.  
+- Enter the following hex code sequence into the ROM memory cells starting from address 0000:
+- 1D 2E 65 00 30 5F F0 00 00 00 00 00 2C 19 00 00
+#### 3. Load Program to RAM (Bootloader Mode)
+- Set the debug pin to HIGH. The **Code Loading Mode LED** will turn ON.  
+- With each clk pulse, the CPU will copy the program from ROM into RAM.  
+  (Two clock pulses are required per instruction/data value.)  
+- Allow the CPU to complete writing all instructions and data into RAM.  
+- Observe MAR and Data Bus activity on the 7-segment displays during this phase.  
+
+---
+
+#### 4. Stop the Bootloader
+- Set the debug pin back to LOW.  
+- Pulse the main clk once to ensure the bootloader process safely stops.  
+
+---
+
+#### 5. Run the Program
+- Pulse **pc_reset** again to reset the Program Counter to 0000.  
+- Provide clock pulses (manual clicking or continuous clock) to let the CPU execute.  
+- Observe PC, MAR, IR, Register A, and Register B values in the 7-segment displays through the Fetch–Decode–Execute cycle.  
+
+---
+
+#### 6. Execution Sequence
+- Fetch LDA(13): load value at address 13 into Register A.  
+- Fetch LDB(14): load value at address 14 into Register B.  
+- Execute JMP 5: program counter jumps to address 5.  
+- At address 5, execute ADD (Register A + Register B).  
+- Execute STA(15): store the result into address 15.  
+- Execute HLT, stopping the CPU.  
+
+---
+
+#### 7. Verify Result
+- After execution, check RAM address **1111 (decimal 15)**.  
+- Expected result: Register A and RAM[15] contain the sum of DEC 35 (0x23) and DEC 25 (0x19), i.e., **0x45 (69 decimal)**.  
+
+---
+
+### SAP-1 CPU Execution (Automatic Mode)
+
+#### After loading all instructions and data values into RAM
+![After loading RAM](images/auto1.png)
+
+*Figure 18: After loading all instruction and data values into RAM memory.*
+
+#### After executing LDA 13
+![After LDA 13](images/auto2.png)
+
+*Figure 19: Value 44 is loaded from memory address 13 into Register A.*
+
+#### After executing LDB 14
+![After LDB 14](images/auto3.png)
+
+*Figure 20: Value 25 is loaded from memory address 14 into Register B.*
+
+#### After executing JMP 5
+![After JMP 5](images/auto4.png)
+
+*Figure 21: Program Counter updated to address 5, redirecting execution flow.*
+
+#### After executing ADD
+![After ADD](images/auto5.png)
+
+*Figure 22: Contents of Register A and Register B are added, and the result (69) is stored back into Register A.*
+
+#### After executing STA 15
+![After STA 15](images/auto6.png)
+
+*Figure 23: The result from Register A (69) is written into memory address 15.*
 
 ## Future Improvement
 

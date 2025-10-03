@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SAP-1 Compiler</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: #f4f7fc;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #4e5d6c;
+      margin-bottom: 20px;
+      font-size: 36px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      width: 500px;
+      max-width: 100%;
+      transition: 0.3s ease;
+    }
+
+    .container:hover {
+      transform: translateY(-5px);
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: #f7f7f7;
+      color: #4e5d6c;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      font-size: 16px;
+      resize: none;
+      line-height: 1.5;
+      font-family: 'Roboto', sans-serif;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 15px;
+      justify-content: space-between;
+    }
+
+    button {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 48%;
+      transition: 0.3s ease;
+    }
+
+    #assembleBtn {
+      background: #a664d8;
+      color: white;
+    }
+
+    #assembleBtn:hover {
+      background: #a730a9;
+    }
+
+    #copyBtn {
+      background: #a664d8;
+      color: white;
+    }
+
+    #copyBtn:hover {
+      background: #a730a9;
+    }
+
+    #output {
+      margin-top: 20px;
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      font-size: 16px;
+      color: #333;
+      font-family: 'Roboto', sans-serif;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .alert {
+      color: #e74c3c;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SAP-1 Compiler</h1>
+    <textarea id="assembly" placeholder="Write SAP-1 assembly code here..."></textarea>
+    <div class="btn-group">
+      <button id="assembleBtn" onclick="assemble()">Assemble to Hex</button>
+      <button id="copyBtn" onclick="copyHex()">Copy to Clipboard</button>
+    </div>
+    <div id="output">Generated Hex Code will appear here...</div>
+  </div>
+
+  <script>
+    const OPCODES = {
+      "LDA": 0x1,
+      "LDB": 0x2,
+      "ADD": 0x3,
+      "SUB": 0x4,
+      "STA": 0x5,
+      "JMP": 0x6,
+      "SHL": 0x7,
+      "SHR": 0x8,
+      "ROL": 0x9,
+      "ROR": 0xA,
+      "HLT": 0xF
+    };
+
+    function assemble() {
+      let input = document.getElementById("assembly").value.split("\n");
+      let memory = new Array(16).fill(0);
+      let pc = 0;
+
+      input.forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith(";")) return;
+
+        let parts = line.split(/\s+/);
+        let instr = parts[0].toUpperCase();
+
+        if (instr === "ORG") {
+          pc = parseInt(parts[1]);
+        } else if (instr === "DEC") {
+          let val = parseInt(parts[1]);
+          memory[pc++] = val & 0xFF;
+        } else if (instr in OPCODES) {
+          let opcode = OPCODES[instr];
+          let addr = 0;
+          if (parts.length > 1) {
+            addr = parseInt(parts[1]) & 0xF;
+          }
+          memory[pc++] = (opcode << 4) | addr;
+        } else {
+          alert("Unknown instruction: " + instr);
+        }
+      });
+
+      let hexOut = memory.map(x => x.toString(16).toUpperCase().padStart(2, "0")).join(" ");
+      document.getElementById("output").innerText = "Generated Hex Code:\n" + hexOut;
+    }
+
+    function copyHex() {
+      let text = document.getElementById("output").innerText.replace("Generated Hex Code:\n", "");
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Hex code copied to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

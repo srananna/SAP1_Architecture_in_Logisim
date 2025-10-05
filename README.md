@@ -32,6 +32,8 @@ Click on the Table of Contents below to directly go to the sections:
 - [Future Improvement](#future-improvement)
 - [Conclusion](#conclusion)
 
+  [🎬 Watch the demo video on Google Drive](https://drive.google.com/file/d/1ul41r_PJywWM69Tie_wHakKOu2BMhZGi/view?usp=sharing)
+
 ## Project Overview
 
 This project implements an enhanced 8-bit **SAP-1** computer in **Logisim Evolution** with hardwired control and an extended instruction set (`LDA`, `LDB`, `ADD`, `SUB`, `STA`, `JMP`, `HLT`).  
